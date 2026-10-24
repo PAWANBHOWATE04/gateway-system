@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100 text-slate-800">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway - Universal QR Entry & DBMS Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for high-tech UI Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR Code Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            900: '#0f172a',
+                        },
+                        cyber: {
+                            neon: '#0284c7',
+                            purple: '#9333ea',
+                            emerald: '#059669',
+                            amber: '#d97706',
+                            rose: '#e11d48'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Modern Soft Pastel Mesh Gradient Background */
+        body {
+            background: linear-gradient(135deg, #e8f5e9 0%, #fce4ec 50%, #e3f2fd 100%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism Panels for Light Theme */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 30px -5px rgba(148, 163, 184, 0.25), 0 4px 12px -2px rgba(148, 163, 184, 0.12);
+        }
+
+        /* Glowing & Terminal Accent Effects */
+        .glow-indigo { box-shadow: 0 0 20px rgba(79, 70, 229, 0.2); }
+        .glow-emerald { box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        
+        /* Scanning Laser Bar Effect */
+        @keyframes scanAnimation {
+            0% { top: 0%; opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { top: 92%; opacity: 0.8; }
+        }
+        .scanner-laser {
+            animation: scanAnimation 2s ease-in-out infinite alternate;
+        }
+
+        /* Terminal Pulse Accent */
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .pulse-live { animation: pulseDot 1.5s infinite; }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(226, 232, 240, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.8); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+
+    <!-- TOP HEADER NAVBAR -->
+    <header class="border-b border-white/70 bg-white/75 backdrop-blur-md sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3.5">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-500/20">
+                    <i class="fa-solid me-0 fa-door-open"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-indigo-950 to-indigo-700 bg-clip-text text-transparent">GATEWAY</h1>
+                        <span class="px-2 py-0.5 text-[10px] font-mono tracking-wide rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase font-semibold">v2.4 DBMS Edition</span>
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium hidden sm:block">A Universal QR-Based Entry-Exit and Resource Management System</p>
+                </div>
+            </div>
+
+            <!-- Quick Action Toolbar -->
+            <div class="flex items-center space-x-2 sm:space-x-3 text-xs">
+                <button onclick="openModal('qrGenModal')" class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-xl border border-slate-200/80 shadow-sm transition flex items-center gap-1.5 font-semibold">
+                    <i class="fa-solid fa-qrcode text-indigo-600"></i>
+                    <span class="hidden md:inline">Generate Lab/Gate QR</span>
+                </button>
+                <button onclick="exportDataToCSV()" class="bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-xl border border-slate-200/80 shadow-sm transition flex items-center gap-1.5 font-semibold">
+                    <i class="fa-solid fa-download text-emerald-600"></i>
+                    <span class="hidden md:inline">Export CSV</span>
+                </button>
+                <button onclick="resetSystemData()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-2 rounded-xl transition flex items-center gap-1.5 font-semibold">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Reset SQL DB</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- METRICS ANALYTICS DASHBOARD -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="glass-panel rounded-2xl p-4 flex items-center justify-between hover:translate-y-[-2px] transition-transform">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Scans Today</p>
+                    <h3 id="statTotalScans" class="text-2xl font-black text-slate-900 mt-1">0</h3>
+                    <p class="text-[11px] text-indigo-600 mt-1 font-mono font-medium"><i class="fa-solid fa-database text-[10px]"></i> SQL Rows Counted</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-xl shadow-sm">
+                    <i class="fa-solid fa-qrcode"></i>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4 flex items-center justify-between hover:translate-y-[-2px] transition-transform">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Currently Checked-In</p>
+                    <h3 id="statCheckedIn" class="text-2xl font-black text-emerald-600 mt-1">0</h3>
+                    <p class="text-[11px] text-emerald-600 mt-1 font-mono font-medium"><i class="fa-solid fa-circle pulse-live text-[8px] me-1"></i>Active Records</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 text-xl shadow-sm">
+                    <i class="fa-solid fa-user-check"></i>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4 flex items-center justify-between hover:translate-y-[-2px] transition-transform">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Checkpoints</p>
+                    <h3 id="statCheckpoints" class="text-2xl font-black text-purple-600 mt-1">0</h3>
+                    <p class="text-[11px] text-purple-600 mt-1 font-mono font-medium">Gates & Labs Online</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 text-xl shadow-sm">
+                    <i class="fa-solid fa-location-dot"></i>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4 flex items-center justify-between hover:translate-y-[-2px] transition-transform">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Lab PC Occupancy</p>
+                    <h3 id="statPCOccupancy" class="text-2xl font-black text-amber-600 mt-1">0/15</h3>
+                    <p class="text-[11px] text-amber-600 mt-1 font-mono font-medium">Auto-Allocated Seats</p>
+                </div>
+                <div class="h-12 w-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 text-xl shadow-sm">
+                    <i class="fa-solid fa-desktop"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- CORE INTERACTIVE WORKSPACE: TWO COLUMNS (SIMULATOR + LOG TERMINAL) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- LEFT WORKSPACE: SCANNER & ENTRY/EXIT CONTROLLER (5 Cols) -->
+            <div class="lg:col-span-5 flex flex-col space-y-6">
+                
+                <!-- SCANNER / QUICK ACCESS PANEL -->
+                <div class="glass-panel rounded-2xl p-5 relative overflow-hidden flex flex-col">
+                    <div class="flex items-center justify-between border-b border-slate-200/80 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-camera text-indigo-600"></i>
+                            <h2 class="text-sm font-bold tracking-wide uppercase text-slate-800">Interactive QR Terminal</h2>
+                        </div>
+                        <span class="flex items-center text-[10px] font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-semibold">
+                            <span class="h-1.5 w-1.5 rounded-full bg-indigo-600 me-1.5 pulse-live"></span> READY TO LOG
+                        </span>
+                    </div>
+
+                    <!-- CAMERA SIMULATOR GRAPHIC -->
+                    <div class="relative bg-slate-900 rounded-xl border border-slate-800 h-44 flex flex-col items-center justify-center overflow-hidden mb-4 group shadow-inner">
+                        <!-- Background Grid Graphic -->
+                        <div class="absolute inset-0 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+                        
+                        <!-- Simulated Target Box -->
+                        <div class="relative z-10 h-32 w-32 border-2 border-dashed border-indigo-400/80 rounded-lg flex flex-col items-center justify-center bg-slate-950/60 p-2">
+                            <div class="scanner-laser absolute inset-x-1 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_8px_#00f0ff]"></div>
+                            <i class="fa-solid fa-qrcode text-4xl text-slate-500 group-hover:text-indigo-400 transition-colors"></i>
+                            <p class="text-[10px] text-slate-400 font-mono mt-2 text-center">Place QR Code Here</p>
+                        </div>
+
+                        <!-- Live Status Tag inside Scanner -->
+                        <div class="absolute bottom-2 left-2 text-[10px] font-mono bg-slate-950/90 text-slate-400 px-2 py-0.5 rounded border border-slate-800">
+                            MODE: <span class="text-indigo-400 font-bold" id="scannerModeLabel">SCAN &amp; DBMS AUTO-LOG</span>
+                        </div>
+                    </div>
+
+                    <!-- SCANNER FORM INPUTS -->
+                    <form id="scanForm" onsubmit="handleScanEvent(event)" class="space-y-3.5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Select Checkpoint / Gate Location</label>
+                            <select id="selectLocation" onchange="onLocationChange()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition font-medium shadow-sm">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Visitor/Student Name</label>
+                                <input type="text" id="inputName" placeholder="e.g. Rahul Sharma" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Roll No / Govt ID</label>
+                                <input type="text" id="inputRoll" placeholder="e.g. CS2026-89" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="pt-1 flex gap-2">
+                            <button type="submit" class="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-bolt text-indigo-200"></i>
+                                <span>Simulate QR Scan &amp; Log Entry</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- DYNAMIC LOCATION RESOURCE ALLOCATION PREVIEW CARD -->
+                <div id="resourceNoticeCard" class="glass-panel rounded-2xl p-4 hidden">
+                    <div class="flex items-start gap-3">
+                        <div class="p-2 bg-amber-50 border border-amber-200 text-amber-600 rounded-xl shadow-sm">
+                            <i class="fa-solid fa-desktop text-lg"></i>
+                        </div>
+                        <div class="flex-1 text-xs">
+                            <h4 class="font-bold text-amber-900">Smart PC Auto-Allocation Enabled</h4>
+                            <p class="text-slate-600 mt-0.5">Scanning into this lab automatically queries the <code class="text-indigo-700 font-mono font-semibold">Resource_Allocation</code> table for the next available computer system ID.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT WORKSPACE: EXECUTED SQL QUERY CONSOLE & TERMINAL LOG (7 Cols) -->
+            <div class="lg:col-span-7 flex flex-col space-y-6">
+                
+                <!-- REAL-TIME EXECUTED SQL LOG CONSOLE -->
+                <div class="glass-panel rounded-2xl p-5 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between border-b border-slate-200/80 pb-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-terminal text-emerald-600"></i>
+                            <h2 class="text-sm font-bold tracking-wide uppercase text-slate-800">Real-Time DBMS Execution Console</h2>
+                        </div>
+                        <button onclick="clearConsoleLog()" class="text-[11px] text-slate-500 hover:text-slate-800 font-mono font-semibold underline">Clear Log</button>
+                    </div>
+                    
+                    <p class="text-xs text-slate-600 mb-2">Every button click or QR scan triggers an underlying relational database statement:</p>
+
+                    <!-- Terminal Output Screen (Retained Dark Neon Theme for Authenticity) -->
+                    <div id="sqlConsoleTerminal" class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 font-mono text-[11px] h-64 overflow-y-auto space-y-2.5 shadow-inner">
+                        <div class="text-slate-500 border-b border-slate-900 pb-1">-- Gateway Database Engine v1.0 Initialized</div>
+                        <div class="text-slate-500">-- SQLite/MySQL relational simulation active</div>
+                    </div>
+                </div>
+
+                <!-- CUSTOM SQL QUERY PLAYGROUND (VIVA SPECIAL FEATURE) -->
+                <div class="glass-panel rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-code text-purple-600"></i>
+                            <h2 class="text-sm font-bold tracking-wide uppercase text-slate-800">Interactive SQL Terminal Query Console</h2>
+                        </div>
+                        <span class="text-[10px] text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-mono font-semibold">DBMS Viva Ready</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex gap-2">
+                            <input type="text" id="customSqlQuery" value="SELECT * FROM Logs WHERE status = 'Checked-In';" placeholder="Write your SQL query..." class="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-purple-900 font-mono focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100 shadow-sm">
+                            <button onclick="executeCustomSql()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-md shadow-purple-500/20 flex items-center gap-1.5">
+                                <i class="fa-solid fa-play"></i> Run Query
+                            </button>
+                        </div>
+                        
+                        <!-- Quick Query Preset Buttons -->
+                        <div class="flex flex-wrap gap-1.5 text-[10px] font-mono text-slate-500 pt-1">
+                            <span class="self-center font-sans text-slate-500 font-medium">Quick Presets:</span>
+                            <button onclick="setQueryPreset(1)" class="bg-white hover:bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-700 font-semibold shadow-sm">View Active Entries</button>
+                            <button onclick="setQueryPreset(2)" class="bg-white hover:bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-700 font-semibold shadow-sm">View Lab Computer Allocations</button>
+                            <button onclick="setQueryPreset(3)" class="bg-white hover:bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-700 font-semibold shadow-sm">View All Registered Users</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- DATABASE TABLES VIEW TABS SECTION -->
+        <section class="glass-panel rounded-2xl p-5">
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4 mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-table text-indigo-600"></i>
+                    <h2 class="text-base font-bold text-slate-900">Live Relational Database Tables</h2>
+                </div>
+
+                <!-- Table Switcher Tabs -->
+                <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-medium">
+                    <button id="tabBtn-Logs" onclick="switchDbTab('Logs')" class="px-3.5 py-1.5 rounded-lg text-indigo-700 bg-white shadow-sm font-bold transition">
+                        <i class="fa-solid fa-list-check me-1"></i> Logs Table
+                    </button>
+                    <button id="tabBtn-Users" onclick="switchDbTab('Users')" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold transition">
+                        <i class="fa-solid fa-users me-1"></i> Users Table
+                    </button>
+                    <button id="tabBtn-Locations" onclick="switchDbTab('Locations')" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold transition">
+                        <i class="fa-solid fa-map-pin me-1"></i> Checkpoints
+                    </button>
+                    <button id="tabBtn-Resources" onclick="switchDbTab('Resources')" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold transition">
+                        <i class="fa-solid fa-desktop me-1"></i> PC Allocation
+                    </button>
+                </div>
+            </div>
+
+            <!-- TABLE CONTAINER WITH SCROLL BAR -->
+            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white/90 shadow-sm">
+                <table class="w-full text-left text-xs font-sans text-slate-700">
+                    <thead id="dbTableHeader" class="bg-slate-50 text-slate-600 uppercase font-mono text-[10px] tracking-wider border-b border-slate-200">
+                        <!-- Rendered by JS -->
+                    </thead>
+                    <tbody id="dbTableBody" class="divide-y divide-slate-100">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="tableRecordCount" class="mt-3 text-right text-[11px] font-mono text-slate-500 font-medium">
+                Total Rows Rendered: 0
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/60 bg-white/40 backdrop-blur-md py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <p><strong>Gateway DBMS Mini-Project</strong> &bull; Universal Entry-Exit &amp; PC Allocation Tracker</p>
+            <p class="font-mono text-[11px] text-slate-500">Built with Pure HTML, CSS (Tailwind) &amp; Vanilla JavaScript SQL Engine</p>
+        </div>
+    </footer>
+
+    <!-- MODAL 1: GENERATE LOCATION QR CODE MODAL -->
+    <div id="qrGenModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button onclick="closeModal('qrGenModal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-2 text-indigo-600 mb-4">
+                <i class="fa-solid fa-qrcode text-xl"></i>
+                <h3 class="text-base font-bold text-slate-900">Create &amp; Print Checkpoint QR Code</h3>
+            </div>
+
+            <form onsubmit="handleCreateLocation(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Checkpoint / Lab Name</label>
+                    <input type="text" id="newLocName" placeholder="e.g. Physics Lab 202 or Gate 3" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">In-Charge Supervisor / Teacher Name</label>
+                    <input type="text" id="newLocSupervisor" placeholder="e.g. Prof. Alan Turing" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Location Type</label>
+                    <select id="newLocType" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100">
+                        <option value="Computer Lab">Computer Lab (Auto-Assign PCs)</option>
+                        <option value="Campus Gate">Campus Gate</option>
+                        <option value="Library">Library Entry</option>
+                        <option value="Auditorium">Auditorium / Hall</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-indigo-500/20">
+                    Generate QR Code &amp; Insert into DB
+                </button>
+            </form>
+
+            <!-- Rendered QR Code Output -->
+            <div id="qrResultContainer" class="mt-5 border-t border-slate-200 pt-4 flex flex-col items-center justify-center hidden">
+                <div id="qrcode" class="bg-white p-3 rounded-xl shadow-md border border-slate-200"></div>
+                <p id="qrLabelText" class="text-xs font-bold text-indigo-700 mt-2 text-center"></p>
+                <p class="text-[10px] text-slate-500 mt-0.5">Print &amp; place this QR code at the physical entry point.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT: IN-MEMORY RELATIONAL SQL ENGINE & INTERACTIVE LOGIC -->
+    <script>
+        // =========================================================================
+        // 1. IN-MEMORY SQL DATABASE SCHEMA & SEED DATA
+        // =========================================================================
+
+        let db = {
+            Users: [
+                { user_id: 101, roll_no: "CS2026-01", name: "Aarav Mehta", role: "Student" },
+                { user_id: 102, roll_no: "CS2026-05", name: "Priya Sharma", role: "Student" },
+                { user_id: 103, roll_no: "CS2026-12", name: "Rohan Verma", role: "Student" },
+                { user_id: 104, roll_no: "VISITOR-99", name: "Dr. K. S. Rao", role: "Guest Visitor" }
+            ],
+            Locations: [
+                { location_id: 1, location_name: "Computer Lab 101", supervisor: "Prof. H. R. Patel", type: "Computer Lab" },
+                { location_id: 2, location_name: "Main Campus Gate", supervisor: "Security Desk", type: "Campus Gate" },
+                { location_id: 3, location_name: "Central Library", supervisor: "Mrs. S. Gupta", type: "Library" }
+            ],
+            Resource_Allocation: [
+                { pc_id: 101, pc_number: "PC-01", status: "Occupied", allocated_to: "Aarav Mehta" },
+                { pc_id: 102, pc_number: "PC-02", status: "Occupied", allocated_to: "Priya Sharma" },
+                { pc_id: 103, pc_number: "PC-03", status: "Available", allocated_to: "-" },
+                { pc_id: 104, pc_number: "PC-04", status: "Available", allocated_to: "-" },
+                { pc_id: 105, pc_number: "PC-05", status: "Available", allocated_to: "-" }
+            ],
+            Logs: [
+                { log_id: 5001, roll_no: "CS2026-01", student_name: "Aarav Mehta", location_name: "Computer Lab 101", pc_assigned: "PC-01", entry_time: getFormattedTime(-45), exit_time: "Still Inside", status: "Checked-In" },
+                { log_id: 5002, roll_no: "CS2026-05", student_name: "Priya Sharma", location_name: "Computer Lab 101", pc_assigned: "PC-02", entry_time: getFormattedTime(-30), exit_time: "Still Inside", status: "Checked-In" },
+                { log_id: 5003, roll_no: "CS2026-12", student_name: "Rohan Verma", location_name: "Main Campus Gate", pc_assigned: "N/A", entry_time: getFormattedTime(-120), exit_time: getFormattedTime(-10), status: "Checked-Out" },
+                { log_id: 5004, roll_no: "CS2026-08", student_name: "Sneha Kulkarni", location_name: "Central Library", pc_assigned: "N/A", entry_time: getFormattedTime(-90), exit_time: "Still Inside", status: "Checked-In" },
+                { log_id: 5005, roll_no: "CS2026-19", student_name: "Amit Deshmukh", location_name: "Computer Lab 101", pc_assigned: "PC-03", entry_time: getFormattedTime(-60), exit_time: getFormattedTime(-15), status: "Checked-Out" },
+                { log_id: 5006, roll_no: "CS2026-22", student_name: "Neha Joshi", location_name: "Main Campus Gate", pc_assigned: "N/A", entry_time: getFormattedTime(-25), exit_time: "Still Inside", status: "Checked-In" },
+                { log_id: 5007, roll_no: "CS2026-30", student_name: "Karan More", location_name: "Central Library", pc_assigned: "N/A", entry_time: getFormattedTime(-15), exit_time: "Still Inside", status: "Checked-In" }
+            ]
+        };
+
+        let currentActiveTab = 'Logs';
+
+        // Helper to format timestamps for standard SQL DateTime outputs
+        function getFormattedTime(offsetMinutes = 0) {
+            const date = new Date(Date.now() + offsetMinutes * 60000);
+            return date.toISOString().slice(0, 19).replace('T', ' ');
+        }
+
+        // =========================================================================
+        // 2. INITIALIZATION & UI RENDER LOGIC
+        // =========================================================================
+
+        window.onload = function() {
+            populateLocationDropdown();
+            renderDatabaseTable();
+            updateAnalyticsDashboard();
+            onLocationChange();
+
+            // Initial Terminal Welcome Queries
+            logToTerminal("SQL > DATABASE 'Gateway_System_DB' CREATED SUCCESSFULLY.");
+            logToTerminal("SQL > CREATE TABLE Users (user_id INT PRIMARY KEY, roll_no VARCHAR, name VARCHAR);");
+            logToTerminal("SQL > CREATE TABLE Logs (log_id INT PRIMARY KEY, roll_no VARCHAR, entry_time DATETIME, status VARCHAR);");
+            logToTerminal("SQL > SELECT * FROM Logs WHERE status = 'Checked-In';");
+        };
+
+        function populateLocationDropdown() {
+            const select = document.getElementById('selectLocation');
+            select.innerHTML = '';
+            db.Locations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc.location_id;
+                opt.textContent = `${loc.location_name} (${loc.type})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function onLocationChange() {
+            const locId = parseInt(document.getElementById('selectLocation').value);
+            const locationObj = db.Locations.find(l => l.location_id === locId);
+            const noticeCard = document.getElementById('resourceNoticeCard');
+
+            if (locationObj && locationObj.type === "Computer Lab") {
+                noticeCard.classList.remove('hidden');
+            } else {
+                noticeCard.classList.add('hidden');
+            }
+        }
+
+        // =========================================================================
+        // 3. SCANNER SIMULATION & SQL DBMS TRANSACTIONS
+        // =========================================================================
+
+        function handleScanEvent(event) {
+            event.preventDefault();
+
+            const nameInput = document.getElementById('inputName').value.trim();
+            const rollInput = document.getElementById('inputRoll').value.trim();
+            const locId = parseInt(document.getElementById('selectLocation').value);
+            const locationObj = db.Locations.find(l => l.location_id === locId);
+
+            if (!nameInput || !rollInput) return;
+
+            // Check if user is already checked in at this location
+            let existingRecord = db.Logs.find(l => l.roll_no.toLowerCase() === rollInput.toLowerCase() && l.status === 'Checked-In');
+
+            if (existingRecord) {
+                // =================================================================
+                // ACTION: CHECK-OUT (UPDATE Query)
+                // =================================================================
+                const exitTimestamp = getFormattedTime();
+                existingRecord.exit_time = exitTimestamp;
+                existingRecord.status = 'Checked-Out';
+
+                // Log SQL Query execution
+                const updateQuery = `UPDATE Logs SET exit_time = '${exitTimestamp}', status = 'Checked-Out' WHERE log_id = ${existingRecord.log_id};`;
+                logToTerminal(updateQuery, 'UPDATE');
+
+                // If they were assigned a PC, free it up in Resource_Allocation
+                if (existingRecord.pc_assigned !== "N/A") {
+                    let pcObj = db.Resource_Allocation.find(p => p.pc_number === existingRecord.pc_assigned);
+                    if (pcObj) {
+                        pcObj.status = "Available";
+                        pcObj.allocated_to = "-";
+                        const freePcSql = `UPDATE Resource_Allocation SET status = 'Available', allocated_to = '-' WHERE pc_number = '${pcObj.pc_number}';`;
+                        logToTerminal(freePcSql, 'UPDATE');
+                    }
+                }
+
+                showToast(`Checked-Out ${nameInput} successfully!`, 'info');
+
+            } else {
+                // =================================================================
+                // ACTION: CHECK-IN (INSERT Query + Auto PC Allocation)
+                // =================================================================
+                
+                // 1. Check/Insert User record in Users table
+                let userObj = db.Users.find(u => u.roll_no.toLowerCase() === rollInput.toLowerCase());
+                if (!userObj) {
+                    const newUserId = 100 + db.Users.length + 1;
+                    userObj = { user_id: newUserId, roll_no: rollInput, name: nameInput, role: "Student" };
+                    db.Users.push(userObj);
+                    const userInsertSql = `INSERT INTO Users (user_id, roll_no, name, role) VALUES (${newUserId}, '${rollInput}', '${nameInput}', 'Student');`;
+                    logToTerminal(userInsertSql, 'INSERT');
+                }
+
+                // 2. Resource Allocation Logic (If Lab)
+                let assignedPc = "N/A";
+                if (locationObj.type === "Computer Lab") {
+                    let freePc = db.Resource_Allocation.find(p => p.status === "Available");
+                    if (freePc) {
+                        freePc.status = "Occupied";
+                        freePc.allocated_to = nameInput;
+                        assignedPc = freePc.pc_number;
+                        const pcSql = `UPDATE Resource_Allocation SET status = 'Occupied', allocated_to = '${nameInput}' WHERE pc_number = '${freePc.pc_number}';`;
+                        logToTerminal(pcSql, 'UPDATE');
+                    } else {
+                        assignedPc = "No PC Available";
+                    }
+                }
+
+                // 3. Create Log Record
+                const newLogId = 5000 + db.Logs.length + 1;
+                const entryTimestamp = getFormattedTime();
+
+                const newLog = {
+                    log_id: newLogId,
+                    roll_no: rollInput,
+                    student_name: nameInput,
+                    location_name: locationObj.location_name,
+                    pc_assigned: assignedPc,
+                    entry_time: entryTimestamp,
+                    exit_time: "Still Inside",
+                    status: "Checked-In"
+                };
+
+                db.Logs.unshift(newLog); // Place latest at top
+
+                const insertLogSql = `INSERT INTO Logs (log_id, roll_no, student_name, location_name, pc_assigned, entry_time, status) VALUES (${newLogId}, '${rollInput}', '${nameInput}', '${locationObj.location_name}', '${assignedPc}', '${entryTimestamp}', 'Checked-In');`;
+                logToTerminal(insertLogSql, 'INSERT');
+
+                showToast(`Checked-In ${nameInput}! Assigned: ${assignedPc}`, 'success');
+            }
+
+            // Clear Input fields
+            document.getElementById('inputName').value = '';
+            document.getElementById('inputRoll').value = '';
+
+            // Update UI
+            renderDatabaseTable();
+            updateAnalyticsDashboard();
+        }
+
+        // =========================================================================
+        // 4. TERMINAL LOG ENGINE & CUSTOM SQL EXECUTION
+        // =========================================================================
+
+        function logToTerminal(queryString, type = 'SELECT') {
+            const terminal = document.getElementById('sqlConsoleTerminal');
+            const line = document.createElement('div');
+            line.className = "py-0.5 border-b border-slate-900/50 flex items-start gap-2";
+
+            let badgeColor = "text-cyan-400";
+            if (type === 'INSERT') badgeColor = "text-emerald-400";
+            if (type === 'UPDATE') badgeColor = "text-amber-400";
+
+            line.innerHTML = `
+                <span class="${badgeColor} font-bold text-[10px] shrink-0">[${type}]</span>
+                <span class="text-slate-200 break-all">${escapeHtml(queryString)}</span>
+            `;
+
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function clearConsoleLog() {
+            document.getElementById('sqlConsoleTerminal').innerHTML = '<div class="text-slate-500">-- SQL Terminal Log Cleared</div>';
+        }
+
+        function executeCustomSql() {
+            const query = document.getElementById('customSqlQuery').value.trim();
+            if (!query) return;
+
+            logToTerminal(`CUSTOM > ${query}`, 'QUERY');
+
+            // Quick pattern response simulator for viva standard queries
+            const lower = query.toLowerCase();
+            if (lower.includes('from logs')) {
+                switchDbTab('Logs');
+            } else if (lower.includes('from users')) {
+                switchDbTab('Users');
+            } else if (lower.includes('from locations')) {
+                switchDbTab('Locations');
+            } else if (lower.includes('from resource_allocation') || lower.includes('from pc')) {
+                switchDbTab('Resources');
+            } else {
+                showToast("Executed custom SQL query!", 'info');
+            }
+        }
+
+        function setQueryPreset(num) {
+            const input = document.getElementById('customSqlQuery');
+            if (num === 1) input.value = "SELECT * FROM Logs WHERE status = 'Checked-In';";
+            if (num === 2) input.value = "SELECT * FROM Resource_Allocation WHERE status = 'Occupied';";
+            if (num === 3) input.value = "SELECT * FROM Users WHERE role = 'Student';";
+            executeCustomSql();
+        }
+
+        // =========================================================================
+        // 5. RELATIONAL TABLE RENDER ENGINE
+        // =========================================================================
+
+        function switchDbTab(tabName) {
+            currentActiveTab = tabName;
+            
+            // Reset Tab Button Styling
+            ['Logs', 'Users', 'Locations', 'Resources'].forEach(t => {
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (t === tabName) {
+                    btn.className = "px-3.5 py-1.5 rounded-lg text-indigo-700 bg-white shadow-sm font-bold transition";
+                } else {
+                    btn.className = "px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 font-semibold transition";
+                }
+            });
+
+            renderDatabaseTable();
+        }
+
+        function renderDatabaseTable() {
+            const header = document.getElementById('dbTableHeader');
+            const body = document.getElementById('dbTableBody');
+            header.innerHTML = '';
+            body.innerHTML = '';
+
+            let data = [];
+            let columns = [];
+
+            if (currentActiveTab === 'Logs') {
+                data = db.Logs;
+                columns = ['log_id', 'roll_no', 'student_name', 'location_name', 'pc_assigned', 'entry_time', 'exit_time', 'status'];
+            } else if (currentActiveTab === 'Users') {
+                data = db.Users;
+                columns = ['user_id', 'roll_no', 'name', 'role'];
+            } else if (currentActiveTab === 'Locations') {
+                data = db.Locations;
+                columns = ['location_id', 'location_name', 'supervisor', 'type'];
+            } else if (currentActiveTab === 'Resources') {
+                data = db.Resource_Allocation;
+                columns = ['pc_id', 'pc_number', 'status', 'allocated_to'];
+            }
+
+            // Render Header Row
+            const trHead = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.className = "px-4 py-3 font-semibold text-slate-600";
+                th.textContent = col;
+                trHead.appendChild(th);
+            });
+            header.appendChild(trHead);
+
+            // Render Rows
+            if (data.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="${columns.length}" class="px-4 py-6 text-center text-slate-400 italic">No records stored in table '${currentActiveTab}'</td>`;
+                body.appendChild(tr);
+            } else {
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-indigo-50/40 transition-colors";
+
+                    columns.forEach(col => {
+                        const td = document.createElement('td');
+                        td.className = "px-4 py-3 whitespace-nowrap text-slate-800 font-medium";
+
+                        // Status Badge Formatting
+                        if (col === 'status') {
+                            if (row[col] === 'Checked-In' || row[col] === 'Occupied') {
+                                td.innerHTML = `<span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/80">${row[col]}</span>`;
+                            } else {
+                                td.innerHTML = `<span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">${row[col]}</span>`;
+                            }
+                        } else if (col === 'pc_assigned' || col === 'pc_number') {
+                            td.innerHTML = `<span class="font-mono text-indigo-700 font-semibold">${row[col]}</span>`;
+                        } else {
+                            td.textContent = row[col];
+                        }
+                        tr.appendChild(td);
+                    });
+                    body.appendChild(tr);
+                });
+            }
+
+            document.getElementById('tableRecordCount').textContent = `Total Database Rows: ${data.length}`;
+        }
+
+        // =========================================================================
+        // 6. DASHBOARD METRICS CALCULATION
+        // =========================================================================
+
+        function updateAnalyticsDashboard() {
+            document.getElementById('statTotalScans').textContent = db.Logs.length;
+
+            const activeCount = db.Logs.filter(l => l.status === 'Checked-In').length;
+            document.getElementById('statCheckedIn').textContent = activeCount;
+
+            document.getElementById('statCheckpoints').textContent = db.Locations.length;
+
+            const occupiedPcs = db.Resource_Allocation.filter(p => p.status === 'Occupied').length;
+            const totalPcs = db.Resource_Allocation.length;
+            document.getElementById('statPCOccupancy').textContent = `${occupiedPcs}/${totalPcs}`;
+        }
+
+        // =========================================================================
+        // 7. LOCATION CREATOR & DYNAMIC QR GENERATOR
+        // =========================================================================
+
+        function handleCreateLocation(e) {
+            e.preventDefault();
+            const name = document.getElementById('newLocName').value.trim();
+            const supervisor = document.getElementById('newLocSupervisor').value.trim();
+            const type = document.getElementById('newLocType').value;
+
+            if (!name) return;
+
+            const newId = db.Locations.length + 1;
+            const newLocation = { location_id: newId, location_name: name, supervisor: supervisor, type: type };
+            db.Locations.push(newLocation);
+
+            // Log INSERT SQL
+            const insertSql = `INSERT INTO Locations (location_id, location_name, supervisor, type) VALUES (${newId}, '${name}', '${supervisor}', '${type}');`;
+            logToTerminal(insertSql, 'INSERT');
+
+            populateLocationDropdown();
+            updateAnalyticsDashboard();
+
+            // Render Printable QR Code in Modal
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            
+            new QRCode(qrContainer, {
+                text: `GATEWAY_CHECKPOINT:${newId}:${name}`,
+                width: 128,
+                height: 128,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('qrLabelText').textContent = `${name} (${type})`;
+            document.getElementById('qrResultContainer').classList.remove('hidden');
+
+            showToast("Created Checkpoint & Inserted to DB!", 'success');
+        }
+
+        // =========================================================================
+        // 8. UTILITY HELPERS (CSV Export, Reset, Modals & Toast)
+        // =========================================================================
+
+        function exportDataToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Log_ID,Roll_No,Name,Location,PC_Assigned,Entry_Time,Exit_Time,Status\n";
+            db.Logs.forEach(l => {
+                csvContent += `${l.log_id},${l.roll_no},"${l.student_name}","${l.location_name}",${l.pc_assigned},${l.entry_time},${l.exit_time},${l.status}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Gateway_Log_Export_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("Exported database records to CSV!", "info");
+        }
+
+        function resetSystemData() {
+            db.Logs = [];
+            db.Resource_Allocation.forEach(p => {
+                p.status = "Available";
+                p.allocated_to = "-";
+            });
+
+            logToTerminal("SQL > DELETE FROM Logs; -- Database Reset Requested", "UPDATE");
+            renderDatabaseTable();
+            updateAnalyticsDashboard();
+            showToast("Database reset successfully!", "info");
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            let icon = 'fa-circle-check text-emerald-600';
+            if (type === 'info') icon = 'fa-circle-info text-indigo-600';
+
+            toast.className = `fixed bottom-5 right-5 z-50 bg-white border border-slate-200 text-slate-800 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs font-bold animate-bounce`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i> <span>${escapeHtml(message)}</span>`;
+
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
